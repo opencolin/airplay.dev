@@ -5,55 +5,57 @@ description: Control the office Samsung TVs and monitors (the Samsung Wall) — 
 
 # Samsung Wall
 
-The Samsung Wall hub is a small server on the office network that drives the Samsung screens
-over DLNA. You control it through its HTTP API with `curl`. You must be on the office network.
+The Samsung Wall hub is a small server that runs on the user's own machine. It finds the Samsung
+TVs and monitors on the local network and drives them over DLNA. You control it with `curl` at
+`http://localhost:8787`. No password is needed from the machine the hub runs on.
 
-## Setup (once)
+## Setup
 
-You need the hub's address and the wall password. Look for them in `~/.samsung-wall`:
-
-```bash
-cat ~/.samsung-wall 2>/dev/null
-```
-
-If the file is missing, find the hub. Never hardcode or guess an IP: the hub can run on any
-machine and its address changes. It announces itself on the local network over Bonjour as
-`_samsungwall._tcp`. Try these in order and stop at the first that finds it:
+Check whether the hub is already running:
 
 ```bash
-# 1. This machine is the hub
-curl -s -o /dev/null -m 2 -w '%{http_code}\n' http://localhost:8787/start
-# 2. macOS: prints "... can be reached at <host>.local.:<port>"
-(dns-sd -L "Samsung Wall" _samsungwall._tcp local & p=$!; sleep 3; kill $p) 2>/dev/null | grep -m1 'reached at'
-# 3. Linux
-avahi-browse -rtp _samsungwall._tcp 2>/dev/null | grep '^='
+curl -s -o /dev/null -m 3 -w '%{http_code}\n' http://localhost:8787/api/state
 ```
 
-Use the hostname, not an IP: `http://localhost:8787`, or `http://<host>.local:<port>` (drop the
-trailing dot). If none of them find it, ask the user for the hub's address.
+`200` means it is: skip to the next section. Otherwise install it. This needs macOS, and the
+machine must be on the same network as the screens.
 
-Then ask the user for the wall password (they get it from whoever runs the hub; never guess it)
-and save both without echoing the password back. When the hub is `localhost`, no password is
-needed: save an empty one.
+1. Check what's there:
 
-```bash
-umask 077; printf 'HUB=%s\nPW=%s\n' '<hub address>' '<password>' > ~/.samsung-wall
-```
+   ```bash
+   node -v; command -v ffmpeg git; ls -d "/Applications/Google Chrome.app"
+   ```
 
-Every command below starts by loading that file:
+   The hub needs Node 20+, ffmpeg, git and Google Chrome. If any are missing, tell the user
+   which, and ask before installing them (`brew install node ffmpeg`; Chrome from google.com/chrome).
 
-```bash
-. ~/.samsung-wall
-```
+2. Get the code and install the hub so it starts at login and stays running:
 
-A `401` means the password is wrong: ask again and rewrite the file. If the hub does not answer,
-the hub may have moved: run the discovery steps above again and rewrite `HUB` in the file. If it
-still can't be found, the user is probably off the office network or the hub is off.
+   ```bash
+   git clone https://github.com/opencolin/samsung-wall ~/samsung-wall
+   cd ~/samsung-wall && npm install && scripts/install-service.sh
+   ```
+
+   If `~/samsung-wall` already exists, `git -C ~/samsung-wall pull` instead of cloning.
+
+3. Wait a few seconds, then find the screens. The scan takes up to a minute:
+
+   ```bash
+   curl -s -X POST -m 120 http://localhost:8787/api/scan
+   ```
+
+   macOS may ask the user to allow `node` to find devices on the local network; they must allow
+   it. If no screens come back, check the screens are on and on the same network, and read
+   `~/samsung-wall/data/hub.log`.
+
+4. Tell the user which screens were found, by label.
+
+To restart the hub: `launchctl kickstart -k gui/$(id -u)/club.samsungwall.hub`.
 
 ## See the screens and the library
 
 ```bash
-. ~/.samsung-wall; curl -s -u ":$PW" "$HUB/api/state"
+curl -s "http://localhost:8787/api/state"
 ```
 
 Returns JSON with:
@@ -83,21 +85,21 @@ Content must be in the library first. To show a website, add it (if it isn't the
 take its `id` from the returned `library`:
 
 ```bash
-. ~/.samsung-wall; curl -s -u ":$PW" -X POST "$HUB/api/library" \
+curl -s -X POST "http://localhost:8787/api/library" \
   -H 'content-type: application/json' -d '{"src":"https://example.com/"}'
 ```
 
 To add an image or video file (PNG, JPEG, GIF, WebP or MP4, up to 500 MB):
 
 ```bash
-. ~/.samsung-wall; curl -s -u ":$PW" -X POST "$HUB/api/upload" \
+curl -s -X POST "http://localhost:8787/api/upload" \
   -H 'content-type: image/png' -H 'x-file-name: Poster' --data-binary @poster.png
 ```
 
 Then send it to the screens by id. All the listed screens start together:
 
 ```bash
-. ~/.samsung-wall; curl -s -u ":$PW" -X POST "$HUB/api/show" \
+curl -s -X POST "http://localhost:8787/api/show" \
   -H 'content-type: application/json' \
   -d '{"ids":["<screen id>","<screen id>"],"assetId":"<library id>"}'
 ```

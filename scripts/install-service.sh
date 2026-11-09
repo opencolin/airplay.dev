@@ -1,8 +1,9 @@
 #!/bin/sh
 # Starts the hub at login, restarts it if it stops, and keeps the Mac awake.
-# Usage: DASHBOARD_PASSWORD=... scripts/install-service.sh
+# Usage: scripts/install-service.sh
+# Set DASHBOARD_PASSWORD to also open the dashboard from other devices; without it only this machine can.
 set -eu
-: "${DASHBOARD_PASSWORD:?Set DASHBOARD_PASSWORD so the dashboard can be opened from other devices.}"
+password=${DASHBOARD_PASSWORD:+"<key>DASHBOARD_PASSWORD</key><string>$DASHBOARD_PASSWORD</string>"}
 root=$(cd "$(dirname "$0")/.." && pwd)
 label=club.samsungwall.hub
 plist="$HOME/Library/LaunchAgents/$label.plist"
@@ -20,7 +21,7 @@ cat > "$plist" <<PLIST
   <key>WorkingDirectory</key><string>$root</string>
   <key>EnvironmentVariables</key><dict>
     <key>PATH</key><string>$(dirname "$(command -v ffmpeg)"):/usr/bin:/bin:/usr/sbin:/sbin</string>
-    <key>DASHBOARD_PASSWORD</key><string>$DASHBOARD_PASSWORD</string>
+    $password
   </dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
@@ -30,4 +31,4 @@ cat > "$plist" <<PLIST
 PLIST
 launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$plist"
-echo "Hub installed. Dashboard: http://$(ipconfig getifaddr en0 2>/dev/null || hostname):8787"
+echo "Hub installed. Dashboard: http://localhost:8787"

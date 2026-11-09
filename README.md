@@ -7,28 +7,26 @@ sleep and dropped streams, and switches monitors back to their PC input.
 Websites are rendered by headless Chrome and streamed to the screens through ffmpeg as one shared
 MPEG-TS stream, so every screen showing the same page stays in sync.
 
-## Control it from Claude
+## Set it up with Claude
 
-Open the landing page (`site/`, deployed on Vercel), copy the prompt into Claude Code, and give
-it the wall password when asked. That installs [`skills/samsung-wall/SKILL.md`](skills/samsung-wall/SKILL.md) as the
-`samsung-wall` skill, after which you can just ask Claude to put things on the screens.
+Open the landing page (`site/`, deployed on Vercel) and paste its prompt into Claude Code on a
+Mac that is on the same network as the screens. Claude installs
+[`skills/samsung-wall/SKILL.md`](skills/samsung-wall/SKILL.md), which has it clone this repo,
+start the hub, scan for screens, and then control them at `http://localhost:8787`.
 
-The hub announces itself over Bonjour as `_samsungwall._tcp`, so the skill finds it by name
-whichever machine runs it and whatever its IP is.
-
-## Run the hub
+## Run the hub by hand
 
 Needs macOS, Node 20+, ffmpeg and Google Chrome.
 
 ```bash
 npm install
-DASHBOARD_PASSWORD=... npm start                      # run in the foreground
-DASHBOARD_PASSWORD=... scripts/install-service.sh     # run at login as a launch agent
+npm start                      # run in the foreground
+scripts/install-service.sh     # run at login as a launch agent
 ```
 
-The dashboard is at `http://<hub>:8787`. It needs no password from the hub itself; everywhere
-else it asks for `DASHBOARD_PASSWORD`. Screen state, uploads and the Chrome profile live in
-`data/`, which is not committed.
+The dashboard is at `http://localhost:8787` and needs no password on the hub machine. Set
+`DASHBOARD_PASSWORD` before either command to also open it from other devices. Screen state,
+uploads and the Chrome profile live in `data/`, which is not committed.
 
 ## Routes
 
