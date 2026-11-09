@@ -8,21 +8,21 @@ description: Control the office Samsung TVs and monitors (the Samsung Wall) — 
 The Samsung Wall hub is a small server on the office network that drives the Samsung screens
 over DLNA. You control it through its HTTP API with `curl`. You must be on the office network.
 
-Hub address: `{{HUB_URL}}`
-
 ## Setup (once)
 
-The hub needs the wall password. Look for it in `~/.samsung-wall`:
+You need the hub's address (like `http://192.168.1.20:8787`) and the wall password. Look for them
+in `~/.samsung-wall`:
 
 ```bash
 cat ~/.samsung-wall 2>/dev/null
 ```
 
-If the file is missing, ask the user for the wall password (they get it from whoever runs the
-hub; never guess it), then save it without echoing it back:
+If the file is missing, use the hub address from the user's message if they gave one, otherwise
+ask for it. Ask for the wall password (they get it from whoever runs the hub; never guess it).
+Then save both without echoing the password back:
 
 ```bash
-umask 077; printf 'HUB=%s\nPW=%s\n' '{{HUB_URL}}' '<password>' > ~/.samsung-wall
+umask 077; printf 'HUB=%s\nPW=%s\n' '<hub address>' '<password>' > ~/.samsung-wall
 ```
 
 Every command below starts by loading that file:
@@ -32,8 +32,8 @@ Every command below starts by loading that file:
 ```
 
 A `401` means the password is wrong: ask again and rewrite the file. If the hub does not answer,
-the user is probably off the office network, or the hub address changed — ask them to open the
-hub's `/start` page again and copy the new prompt.
+the user is probably off the office network, or the hub address changed — ask them for the
+current address (it's shown on the hub's `/start` page) and rewrite the file.
 
 ## See the screens and the library
 

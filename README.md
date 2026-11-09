@@ -10,7 +10,7 @@ MPEG-TS stream, so every screen showing the same page stays in sync.
 ## Control it from Claude
 
 Open `http://<hub>:8787/start` on the office network, copy the prompt into Claude Code, and give
-it the wall password when asked. That installs [`public/skill.md`](public/skill.md) as the
+it the wall password when asked. That installs [`skills/samsung-wall/SKILL.md`](skills/samsung-wall/SKILL.md) as the
 `samsung-wall` skill, after which you can just ask Claude to put things on the screens.
 
 ## Run the hub
@@ -33,7 +33,6 @@ else it asks for `DASHBOARD_PASSWORD`. Screen state, uploads and the Chrome prof
 | --- | --- | --- |
 | `GET /` | password | Dashboard |
 | `GET /start` | none | Onboarding page with the Claude prompt |
-| `GET /skill.md` | none | The Claude skill, pointed at this hub |
 | `GET /api/state` | password | Screens, library, groups |
 | `POST /api/show` | password | `{ids, assetId, mode?, delaySeconds?}` |
 | `POST /api/clear`, `/api/pc`, `/api/identify` | password | `{ids}` |

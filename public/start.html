@@ -33,7 +33,7 @@
   <pre id="prompt"></pre>
   <div class="actions">
     <button class="primary" id="copy">Copy prompt</button>
-    <a class="button" href="skill.md" download="SKILL.md">Download SKILL.md</a>
+    <a class="button" href="https://github.com/opencolin/samsung-wall/blob/main/skills/samsung-wall/SKILL.md" target="_blank" rel="noopener">View SKILL.md on GitHub</a>
   </div>
   <p class="step" style="margin-top:16px"><span class="num">2</span><span>When Claude asks, give it the wall password. Ask whoever runs the hub if you don’t have it.</span></p>
   <p class="step"><span class="num">3</span><span>Ask for what you want on the screens.</span></p>
@@ -55,15 +55,15 @@
   <li>The password is saved in <code>~/.samsung-wall</code> on your machine only, never in the skill.</li>
   <li>Prefer clicking? The <a href="/">dashboard</a> does the same things.</li>
 </ul>
-<p class="muted">Using Claude on the web or in the app instead of Claude Code? Download SKILL.md and add it under Settings → Capabilities → Skills. It needs a computer on the office network that can run <code>curl</code>.</p>
+<p class="muted">Using Claude on the web or in the app instead of Claude Code? Download SKILL.md from GitHub and add it under Settings → Capabilities → Skills. It needs a computer on the office network that can run <code>curl</code>.</p>
 
 <script>
   const hub = location.origin;
   document.getElementById('hub').textContent = hub;
   const prompt = `Install the Samsung Wall skill so you can control our office TVs.
 
-1. Download ${hub}/skill.md and save it as ~/.claude/skills/samsung-wall/SKILL.md (create the folder).
-2. Read it and follow its setup: ask me for the wall password and save it the way the skill says.
+1. Download https://raw.githubusercontent.com/opencolin/samsung-wall/main/skills/samsung-wall/SKILL.md and save it as ~/.claude/skills/samsung-wall/SKILL.md (create the folder).
+2. Read it and follow its setup. Our hub is at ${hub}. Ask me for the wall password.
 3. Show me which screens are on the wall and what each one is showing right now.`;
   document.getElementById('prompt').textContent = prompt;
   const copy = document.getElementById('copy');

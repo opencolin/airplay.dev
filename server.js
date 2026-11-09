@@ -511,14 +511,6 @@ async function handleControl(req, res, url) {
   sendJson(res, 404, { error: 'Not found' });
 }
 
-// The skill points at the hub by whatever address the reader used to reach it.
-function sendSkill(req, res) {
-  const host = /^[\w.-]+(:\d+)?$/.test(req.headers.host ?? '') ? req.headers.host : `${os.hostname()}:${PORT}`;
-  const text = fs.readFileSync(path.join(ROOT, 'public/skill.md'), 'utf8').replaceAll('{{HUB_URL}}', `http://${host}`);
-  res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Content-Disposition': 'inline; filename="SKILL.md"' });
-  res.end(req.method === 'HEAD' ? undefined : text);
-}
-
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   try {
@@ -526,9 +518,8 @@ const server = http.createServer(async (req, res) => {
       if (MEDIA_FILE.test(url.pathname)) return streamMedia(req, res, path.join(DATA, url.pathname), MEDIA_TYPES[url.pathname.split('.')[1]]);
       const live = LIVE_PATH.exec(url.pathname);
       if (live) return streamLive(req, res, live[1]);
-      // The onboarding page and skill hold no secrets, so anyone on the network can read them.
+      // The onboarding page holds no secrets, so anyone on the network can read it.
       if (url.pathname === '/start') return sendFile(res, path.join(ROOT, 'public/start.html'), 'text/html');
-      if (url.pathname === '/skill.md') return sendSkill(req, res);
     }
     if (authorize(req, res)) await handleControl(req, res, url);
   } catch (err) {
