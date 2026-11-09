@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Samsung Wall</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f5f5f4; --card: #fff; --text: #1c1917; --muted: #78716c; --line: #e7e5e4; --accent: #2563eb; --on-accent: #fff; --ok: #15803d; --bad: #b91c1c; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #171717; --card: #262626; --text: #f5f5f4; --muted: #a8a29e; --line: #404040; --accent: #60a5fa; --on-accent: #111; --ok: #4ade80; --bad: #f87171; } }
+  * { box-sizing: border-box; }
+  body { margin: 0 auto; max-width: 1040px; padding: 24px 16px; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+  h1 { font-size: 22px; margin: 0; } h2 { font-size: 15px; margin: 0 0 10px; }
+  button { font: inherit; padding: 7px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--text); cursor: pointer; }
+  button.primary, button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  input[type=url], input[type=text], input[type=number] { font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--text); min-width: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+  .card, .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .card.selected { border-color: var(--accent); }
+  .panel { margin-top: 16px; }
+  .top { display: flex; gap: 8px; align-items: center; } .top input[type=text] { flex: 1; width: 100%; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 8px; overflow-wrap: anywhere; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  .row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; } .row:last-child { margin-bottom: 0; }
+  .grow { flex: 1 1 220px; }
+  .asset { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+  .asset label { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; overflow-wrap: anywhere; }
+  .kind { color: var(--muted); font-size: 13px; }
+  #number { width: 76px; }
+  #log { white-space: pre-wrap; font-size: 13px; color: var(--muted); min-height: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Samsung Wall</h1>
+  <button id="scan">Find screens</button>
+</header>
+<div class="row" id="groups"></div>
+<div class="grid" id="screens"></div>
+<section class="panel">
+  <div class="row">
+    <input class="grow" type="text" id="groupName" placeholder="Name for this selection" aria-label="Group name">
+    <button id="saveGroup">Save as group</button>
+    <button id="identify">Identify</button>
+    <button id="switchPc">Switch to PC</button>
+    <button id="clear">Clear screens</button>
+  </div>
+</section>
+<section class="panel">
+  <h2>Library</h2>
+  <div class="row">
+    <input class="grow" type="url" id="url" placeholder="https://example.com" aria-label="Website URL">
+    <button id="addUrl">Add website</button>
+    <input type="file" id="file" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4" aria-label="Image or video file">
+    <button id="addFile">Add file</button>
+  </div>
+  <div id="library"></div>
+</section>
+<section class="panel">
+  <div class="row">
+    <label><input type="radio" name="mode" value="together" checked> All at once</label>
+    <label><input type="radio" name="mode" value="sequence"> One by one, every</label>
+    <input type="number" id="number" min="0" max="3600" value="5" aria-label="Seconds between screens"> seconds
+    <button class="primary" id="send">Send to selected screens</button>
+  </div>
+  <div id="log" role="status"></div>
+</section>
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+  const selected = new Set();
+  const STATUS = {
+    checking: ['Checking', ''], playing: ['Showing', 'ok'], idle: ['Ready', 'ok'], asleep: ['Asleep or off', ''],
+    sending: ['Sending', ''], reconnecting: ['Reconnecting', ''], error: ['Problem', 'bad'],
+  };
+  const ALLOW_HINT = 'Switching to PC. Press Allow on any screen that asks.';
+  const KIND = { url: 'Live website', image: 'Image', video: 'Video' };
+  let view = { monitors: [], groups: [], library: [] };
+  let chosenAsset = null;
+  const rendered = {};
+
+  async function api(path, body) {
+    const res = await fetch(path, body === undefined ? undefined : {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  }
+
+  async function run(label, action) {
+    $('log').textContent = label;
+    try {
+      const next = await action();
+      if (next) { view = next; render(); }
+      $('log').textContent = next?.message ?? '';
+    } catch (err) {
+      $('log').textContent = err.message;
+    }
+  }
+
+  function ids() {
+    if (selected.size) return [...selected];
+    throw new Error('Select at least one screen.');
+  }
+
+  function card(m) {
+    const el = document.createElement('div');
+    el.className = selected.has(m.id) ? 'card selected' : 'card';
+    const top = document.createElement('label');
+    top.className = 'top';
+    const check = document.createElement('input');
+    check.type = 'checkbox';
+    check.checked = selected.has(m.id);
+    check.setAttribute('aria-label', `Select ${m.label}`);
+    check.onchange = () => { check.checked ? selected.add(m.id) : selected.delete(m.id); render(); };
+    const name = document.createElement('input');
+    name.type = 'text';
+    name.value = m.label;
+    name.setAttribute('aria-label', 'Screen name');
+    name.onchange = () => run('Saving', () => api('/api/rename', { id: m.id, label: name.value }));
+    top.append(check, name);
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const [text, tone] = STATUS[m.status];
+    const state = document.createElement('span');
+    state.className = tone;
+    state.textContent = text;
+    meta.append(state, ` · ${m.ip}`);
+    if (m.content) meta.append(` · ${m.content.name}`);
+    if (m.error) meta.append(` · ${m.error}`);
+    el.append(top, meta);
+    return el;
+  }
+
+  function chip(label, members, onDelete) {
+    const button = document.createElement('button');
+    button.textContent = label;
+    const active = members.length > 0 && members.length === selected.size && members.every((id) => selected.has(id));
+    if (active) button.className = 'on';
+    button.onclick = () => {
+      selected.clear();
+      if (!active) members.forEach((id) => selected.add(id));
+      render();
+    };
+    if (!onDelete) return [button];
+    const remove = document.createElement('button');
+    remove.textContent = '×';
+    remove.setAttribute('aria-label', `Delete group ${label}`);
+    remove.onclick = onDelete;
+    return [button, remove];
+  }
+
+  function assetRow(asset) {
+    const row = document.createElement('div');
+    row.className = 'asset';
+    const label = document.createElement('label');
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'asset';
+    radio.checked = chosenAsset === asset.id;
+    radio.onchange = () => { chosenAsset = asset.id; };
+    const kind = document.createElement('span');
+    kind.className = 'kind';
+    kind.textContent = KIND[asset.type];
+    label.append(radio, asset.name, kind);
+    const remove = document.createElement('button');
+    remove.textContent = 'Delete';
+    remove.onclick = () => run('Deleting', () => api('/api/library/delete', { id: asset.id }));
+    row.append(label, remove);
+    return row;
+  }
+
+  // Polling must not rebuild rows under the cursor when nothing has changed.
+  function changed(key, value) {
+    const next = JSON.stringify(value);
+    if (rendered[key] === next) return false;
+    rendered[key] = next;
+    return true;
+  }
+
+  function render() {
+    $('scan').disabled = view.scanning;
+    const models = [...new Set(view.monitors.map((m) => m.name))];
+    $('groups').replaceChildren(
+      ...chip('All', view.monitors.map((m) => m.id)),
+      ...models.flatMap((name) => chip(name, view.monitors.filter((m) => m.name === name).map((m) => m.id))),
+      ...view.groups.flatMap((g) => chip(g.name, g.ids, () => run('Deleting', () => api('/api/groups/delete', { id: g.id })))),
+    );
+    const typing = document.activeElement.type === 'text' && $('screens').contains(document.activeElement);
+    if (!typing && changed('screens', [view.monitors, view.scanning, [...selected]])) {
+      $('screens').replaceChildren(...view.monitors.map(card));
+      if (!view.monitors.length) $('screens').textContent = view.scanning ? 'Looking for screens…' : 'No screens found.';
+    }
+    if (changed('library', view.library)) {
+      $('library').replaceChildren(...view.library.map(assetRow));
+      if (!view.library.length) $('library').textContent = 'Add a website, image, or video.';
+    }
+  }
+
+  async function refresh() {
+    try { view = await api('/api/state'); render(); } catch { /* the next poll will retry */ }
+  }
+
+  $('scan').onclick = () => run('Waking and finding screens. This takes about 15 seconds.', () => api('/api/scan', {}));
+  $('saveGroup').onclick = () => run('Saving', async () => {
+    const data = await api('/api/groups', { name: $('groupName').value, ids: ids() });
+    $('groupName').value = '';
+    return data;
+  });
+  $('identify').onclick = () => run('Showing names', () => api('/api/identify', { ids: ids() }));
+  $('clear').onclick = () => run(ALLOW_HINT, () => api('/api/clear', { ids: ids() }));
+  $('switchPc').onclick = () => run(ALLOW_HINT, () => api('/api/pc', { ids: ids() }));
+  $('addUrl').onclick = () => run('Adding', async () => {
+    const data = await api('/api/library', { src: $('url').value.trim() });
+    $('url').value = '';
+    return data;
+  });
+  $('addFile').onclick = () => run('Uploading. Long videos take a minute to prepare.', async () => {
+    const file = $('file').files[0];
+    if (!file) throw new Error('Choose a file first.');
+    const res = await fetch('/api/upload', {
+      method: 'POST', headers: { 'Content-Type': file.type, 'X-File-Name': encodeURIComponent(file.name) }, body: file,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    $('file').value = '';
+    return data;
+  });
+  $('send').onclick = () => run('Sending', () => api('/api/show', {
+    ids: ids(), assetId: chosenAsset,
+    mode: document.querySelector('input[name=mode]:checked').value, delaySeconds: $('number').value,
+  }));
+
+  refresh();
+  setInterval(refresh, 3000);
+</script>
+</body>
+</html>
