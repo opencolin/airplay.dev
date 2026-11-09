@@ -9,9 +9,12 @@ MPEG-TS stream, so every screen showing the same page stays in sync.
 
 ## Control it from Claude
 
-Open `http://<hub>:8787/start` on the office network, copy the prompt into Claude Code, and give
+Open the landing page (`site/`, deployed on Vercel), copy the prompt into Claude Code, and give
 it the wall password when asked. That installs [`skills/samsung-wall/SKILL.md`](skills/samsung-wall/SKILL.md) as the
 `samsung-wall` skill, after which you can just ask Claude to put things on the screens.
+
+The hub announces itself over Bonjour as `_samsungwall._tcp`, so the skill finds it by name
+whichever machine runs it and whatever its IP is.
 
 ## Run the hub
 
@@ -32,7 +35,7 @@ else it asks for `DASHBOARD_PASSWORD`. Screen state, uploads and the Chrome prof
 | Route | Auth | Purpose |
 | --- | --- | --- |
 | `GET /` | password | Dashboard |
-| `GET /start` | none | Onboarding page with the Claude prompt |
+| `GET /start` | none | Same landing page as `site/` |
 | `GET /api/state` | password | Screens, library, groups |
 | `POST /api/show` | password | `{ids, assetId, mode?, delaySeconds?}` |
 | `POST /api/clear`, `/api/pc`, `/api/identify` | password | `{ids}` |

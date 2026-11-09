@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -519,7 +519,7 @@ const server = http.createServer(async (req, res) => {
       const live = LIVE_PATH.exec(url.pathname);
       if (live) return streamLive(req, res, live[1]);
       // The onboarding page holds no secrets, so anyone on the network can read it.
-      if (url.pathname === '/start') return sendFile(res, path.join(ROOT, 'public/start.html'), 'text/html');
+      if (url.pathname === '/start') return sendFile(res, path.join(ROOT, 'site/index.html'), 'text/html');
     }
     if (authorize(req, res)) await handleControl(req, res, url);
   } catch (err) {
@@ -527,8 +527,18 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// Announce the hub over Bonjour so the Claude skill can find it whatever this machine's IP is.
+function advertise() {
+  if (!fs.existsSync('/usr/bin/dns-sd')) return;
+  const child = spawn('/usr/bin/dns-sd', ['-R', 'Samsung Wall', '_samsungwall._tcp', 'local', String(PORT), 'path=/'], { stdio: 'ignore' });
+  child.on('error', (err) => console.error('Bonjour failed:', err.message));
+  for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { child.kill(); process.exit(0); });
+  process.on('exit', () => child.kill());
+}
+
 server.listen(PORT, () => {
   console.log(`Dashboard: http://localhost:${PORT}`);
+  advertise();
   scan().catch((err) => console.error('Scan failed:', err.message));
   checkScreens();
 });

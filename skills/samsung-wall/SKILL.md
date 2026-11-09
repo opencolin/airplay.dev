@@ -10,16 +10,31 @@ over DLNA. You control it through its HTTP API with `curl`. You must be on the o
 
 ## Setup (once)
 
-You need the hub's address (like `http://192.168.1.20:8787`) and the wall password. Look for them
-in `~/.samsung-wall`:
+You need the hub's address and the wall password. Look for them in `~/.samsung-wall`:
 
 ```bash
 cat ~/.samsung-wall 2>/dev/null
 ```
 
-If the file is missing, use the hub address from the user's message if they gave one, otherwise
-ask for it. Ask for the wall password (they get it from whoever runs the hub; never guess it).
-Then save both without echoing the password back:
+If the file is missing, find the hub. Never hardcode or guess an IP: the hub can run on any
+machine and its address changes. It announces itself on the local network over Bonjour as
+`_samsungwall._tcp`. Try these in order and stop at the first that finds it:
+
+```bash
+# 1. This machine is the hub
+curl -s -o /dev/null -m 2 -w '%{http_code}\n' http://localhost:8787/start
+# 2. macOS: prints "... can be reached at <host>.local.:<port>"
+(dns-sd -L "Samsung Wall" _samsungwall._tcp local & p=$!; sleep 3; kill $p) 2>/dev/null | grep -m1 'reached at'
+# 3. Linux
+avahi-browse -rtp _samsungwall._tcp 2>/dev/null | grep '^='
+```
+
+Use the hostname, not an IP: `http://localhost:8787`, or `http://<host>.local:<port>` (drop the
+trailing dot). If none of them find it, ask the user for the hub's address.
+
+Then ask the user for the wall password (they get it from whoever runs the hub; never guess it)
+and save both without echoing the password back. When the hub is `localhost`, no password is
+needed: save an empty one.
 
 ```bash
 umask 077; printf 'HUB=%s\nPW=%s\n' '<hub address>' '<password>' > ~/.samsung-wall
@@ -32,8 +47,8 @@ Every command below starts by loading that file:
 ```
 
 A `401` means the password is wrong: ask again and rewrite the file. If the hub does not answer,
-the user is probably off the office network, or the hub address changed — ask them for the
-current address (it's shown on the hub's `/start` page) and rewrite the file.
+the hub may have moved: run the discovery steps above again and rewrite `HUB` in the file. If it
+still can't be found, the user is probably off the office network or the hub is off.
 
 ## See the screens and the library
 
