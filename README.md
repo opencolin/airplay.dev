@@ -11,7 +11,7 @@ MPEG-TS stream, so every screen showing the same page stays in sync.
 
 Open the landing page (`site/`, deployed on Vercel) and paste its prompt into Claude Code on a
 Mac that is on the same network as the screens. Claude installs
-[`skills/samsung-wall/SKILL.md`](skills/samsung-wall/SKILL.md), which has it clone this repo,
+[`site/skill.md`](site/skill.md) (served at `/skill.md`), which has it clone this repo,
 start the hub, scan for screens, and then control them at `http://localhost:8787`.
 
 ## Run the hub by hand

@@ -33,7 +33,7 @@
   <pre id="prompt"></pre>
   <div class="actions">
     <button class="primary" id="copy">Copy prompt</button>
-    <a class="button" href="https://github.com/opencolin/samsung-wall/blob/main/skills/samsung-wall/SKILL.md" target="_blank" rel="noopener">View SKILL.md on GitHub</a>
+    <a class="button" href="skill.md" target="_blank" rel="noopener">View skill.md</a>
   </div>
   <p class="step" style="margin-top:16px"><span class="num">2</span><span>Claude installs the hub and scans for screens. Approve the steps it asks about.</span></p>
   <p class="step"><span class="num">3</span><span>Ask for what you want on the screens.</span></p>
@@ -60,7 +60,7 @@
 <script>
   const prompt = `Set up Samsung Wall so you can control the Samsung TVs and monitors on my network.
 
-1. Download https://raw.githubusercontent.com/opencolin/samsung-wall/main/skills/samsung-wall/SKILL.md and save it as ~/.claude/skills/samsung-wall/SKILL.md (create the folder).
+1. Download https://samsung-wall.vercel.app/skill.md and save it as ~/.claude/skills/samsung-wall/SKILL.md (create the folder).
 2. Read it and follow its setup: install the hub on this machine and scan for screens.
 3. Show me which screens you found and what each one is showing right now.`;
   document.getElementById('prompt').textContent = prompt;
