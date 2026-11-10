@@ -64,8 +64,11 @@ curl -s "http://localhost:8787/api/state"
 Returns JSON with:
 
 - `monitors[]`: `id`, `label` (the name people use, e.g. `98" Crystal UHD`, `Conference Room`),
-  `ip`, `model`, `status` (`playing`, `asleep`, `sending`, `error`, `checking`…), `error`,
+  `ip`, `model`, `status`, `error`,
   and `content` (what it should be showing).
+  Statuses: `playing` (showing hub content), `inuse` (on, and showing something that isn't from
+  the hub: someone's PC, a console, a TV app), `asleep` (off or sleeping, free to use), `idle`
+  (the hub just let go of it), `sending`, `error`, `checking`.
 - `library[]`: things that can be shown — `id`, `name`, `type` (`url`, `image`, `video`), `src`.
 - `groups[]`: saved sets of screens — `id`, `name`, `ids`.
 
@@ -106,6 +109,11 @@ curl -s -X POST "http://localhost:8787/api/show" \
   -H 'content-type: application/json' \
   -d '{"ids":["<screen id>","<screen id>"],"assetId":"<library id>"}'
 ```
+
+The hub will not take over a screen that is `inuse`. Those are left alone and come back in the
+reply as `skipped` (a list of `id` and `label`); the rest get the content. Tell the user which
+screens were skipped and why. Only if they then say to take those over, send again for just
+those ids with `"force":true`. Never use `force` on the first try.
 
 To start them one after another instead, add `"mode":"sequence","delaySeconds":5`.
 

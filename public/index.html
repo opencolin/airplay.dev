@@ -70,7 +70,7 @@
   const $ = (id) => document.getElementById(id);
   const selected = new Set();
   const STATUS = {
-    checking: ['Checking', ''], playing: ['Showing', 'ok'], idle: ['Ready', 'ok'], asleep: ['Asleep or off', ''],
+    checking: ['Checking', ''], playing: ['Showing', 'ok'], idle: ['Ready', 'ok'], inuse: ['In use', ''], asleep: ['Asleep or off', ''],
     sending: ['Sending', ''], reconnecting: ['Reconnecting', ''], error: ['Problem', 'bad'],
   };
   const ALLOW_HINT = 'Switching to PC. Press Allow on any screen that asks.';
@@ -227,10 +227,17 @@
     $('file').value = '';
     return data;
   });
-  $('send').onclick = () => run('Sending', () => api('/api/show', {
-    ids: ids(), assetId: chosenAsset,
-    mode: document.querySelector('input[name=mode]:checked').value, delaySeconds: $('number').value,
-  }));
+  $('send').onclick = () => run('Sending', async () => {
+    const request = {
+      ids: ids(), assetId: chosenAsset,
+      mode: document.querySelector('input[name=mode]:checked').value, delaySeconds: $('number').value,
+    };
+    const data = await api('/api/show', request);
+    if (!data.skipped?.length) return data;
+    const names = data.skipped.map((m) => m.label).join(', ');
+    if (!confirm(`In use, so left alone: ${names}.\n\nTake them over anyway?`)) return data;
+    return api('/api/show', { ...request, ids: data.skipped.map((m) => m.id), force: true });
+  });
 
   refresh();
   setInterval(refresh, 3000);

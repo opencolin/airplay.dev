@@ -21,6 +21,7 @@ const MAX_RETRY_MS = 5 * 60000;
 const RESCAN_MS = 5 * 60000;
 const WAKE_ATTEMPTS = 5;
 const IDENTIFY_MS = 8000;
+const RELEASE_GRACE_MS = 2 * 60000;
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const VIDEO_TARGET_SECONDS = 8 * 3600;
 const VIDEO_MAX_BYTES = 1e9;
@@ -163,9 +164,23 @@ async function forEachScreen(list, action) {
   return failures.join('\n');
 }
 
+// A screen with nothing to show goes to sleep within about a minute. One that is awake without
+// content from the hub is therefore being used by someone: a PC, a console, or the TV's own apps.
+// Screens the hub just let go of get a couple of minutes to fall asleep before they count.
+const recentlyReleased = (monitor) => Date.now() - (statusOf(monitor).releasedAt ?? 0) < RELEASE_GRACE_MS;
+
+async function inUse(monitor) {
+  if (monitor.content || recentlyReleased(monitor)) return false;
+  const info = await getInfo(monitor.ip, 1500).catch(() => null);
+  return info?.id === monitor.id && info.power === 'on';
+}
+
 function releaseScreens(list) {
   rollout++;
-  for (const m of list) m.content = null;
+  for (const m of list) {
+    if (m.content) statusOf(m).releasedAt = Date.now();
+    m.content = null;
+  }
   save();
   stopUnusedStreams();
 }
@@ -217,7 +232,7 @@ async function check(monitor) {
   const { content } = monitor;
   if (status.busy) return;
   if (!content) {
-    Object.assign(status, { status: transport ? 'idle' : 'asleep', error: null });
+    Object.assign(status, { status: !transport ? 'asleep' : recentlyReleased(monitor) ? 'idle' : 'inuse', error: null });
     return;
   }
   const now = Date.now();
@@ -228,6 +243,7 @@ async function check(monitor) {
   }
   if (now - status.castAt < CAST_GRACE_MS) return;
   monitor.content = null;
+  status.releasedAt = now;
   save();
   stopUnusedStreams();
   if (status.status !== 'error') Object.assign(status, { status: transport ? 'idle' : 'asleep', error: null });
@@ -427,16 +443,21 @@ async function handleControl(req, res, url) {
     return sendJson(res, 200, publicState());
   }
   if (route === 'POST /api/show') {
-    const { ids, assetId, mode, delaySeconds } = await readJson(req);
-    const list = targets(ids);
+    const { ids, assetId, mode, delaySeconds, force } = await readJson(req);
+    const wanted = targets(ids);
     const content = contentFor(assetId);
+    // Leave screens someone is using alone unless the caller says to take them over.
+    const busy = force ? [] : (await Promise.all(wanted.map(async (m) => (await inUse(m) ? m : null)))).filter(Boolean);
+    const list = wanted.filter((m) => !busy.includes(m));
+    const skipped = busy.map((m) => ({ id: m.id, label: m.label }));
+    if (!list.length) return sendJson(res, 200, { ...publicState(), skipped });
     if (mode === 'sequence') {
       sendOneByOne(list, content, Math.max(Number(delaySeconds) || 0, 0) * 1000);
     } else {
       rollout++;
       await sendTogether(list, content);
     }
-    return sendJson(res, 200, publicState());
+    return sendJson(res, 200, { ...publicState(), skipped });
   }
   if (route === 'POST /api/clear') {
     const list = targets((await readJson(req)).ids);

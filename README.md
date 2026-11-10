@@ -35,12 +35,15 @@ uploads and the Chrome profile live in `data/`, which is not committed.
 | `GET /` | password | Dashboard |
 | `GET /start` | none | Same landing page as `site/` |
 | `GET /api/state` | password | Screens, library, groups |
-| `POST /api/show` | password | `{ids, assetId, mode?, delaySeconds?}` |
+| `POST /api/show` | password | `{ids, assetId, mode?, delaySeconds?, force?}`; screens in use are skipped unless `force` |
 | `POST /api/clear`, `/api/pc`, `/api/identify` | password | `{ids}` |
 | `POST /api/scan` | password | Rediscover screens and wake sleepers |
 | `POST /api/library`, `/api/upload` | password | Add a URL or a file |
 
 ## Notes from testing the screens
+
+- The screens don't report their current input. A screen with nothing playing sleeps within
+  about a minute, so one that is on without hub content is treated as in use.
 
 - Sleeping screens wake with Wake-on-LAN to their Wi-Fi MAC, usually in about 3 seconds but
   sometimes over 15, and fall asleep again about a minute after nothing is playing.
