@@ -106,8 +106,9 @@ curl -s -X POST "http://localhost:8787/api/show" \
 
 To start them one after another instead, add `"mode":"sequence","delaySeconds":5`.
 
-The hub wakes sleeping screens and keeps re-sending the content if a screen drops it, so you only
-need to send once. Websites take a few seconds to start. After sending, wait ~10 seconds, check
+The hub wakes sleeping screens and sends the content once. It does not push it back: if someone
+switches the screen to another input or turns it off, the hub lets go and the screen shows as
+`idle` again. Websites take a few seconds to start. After sending, wait ~10 seconds, check
 `/api/state`, and tell the user which screens are `playing` and quote any `error` in full.
 
 ## Other actions

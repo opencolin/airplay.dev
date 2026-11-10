@@ -208,8 +208,8 @@ function targets(ids) {
 
 const healthyStates = new Set(['PLAYING', 'TRANSITIONING']);
 
-// The dashboard stores what each screen should show. This keeps it there through reboots, dropped
-// streams, sleep, and videos reaching their end, backing off when a screen keeps failing.
+// Content is sent once. If the screen stops playing it (someone picked another input, turned it
+// off, or the stream dropped) the hub lets go rather than pushing it back, so people can use the screen.
 async function check(monitor) {
   const status = statusOf(monitor);
   if (status.busy) return;
@@ -226,17 +226,11 @@ async function check(monitor) {
     if (transport === 'PLAYING' && streaming) Object.assign(status, { status: 'playing', error: null, failures: 0 });
     return;
   }
-  if (now - status.castAt < CAST_GRACE_MS || now < status.nextTry) return;
-  Object.assign(status, { busy: true, status: 'reconnecting' });
-  try {
-    await load(monitor, content);
-    await start(monitor);
-  } catch (err) {
-    failed(monitor, err);
-    if (now - lastScan > RESCAN_MS) scan().catch(() => null);
-  } finally {
-    status.busy = false;
-  }
+  if (now - status.castAt < CAST_GRACE_MS) return;
+  monitor.content = null;
+  save();
+  stopUnusedStreams();
+  if (status.status !== 'error') Object.assign(status, { status: transport ? 'idle' : 'asleep', error: null });
 }
 
 async function checkScreens() {

@@ -1,8 +1,8 @@
 # Samsung Wall
 
 A small hub that drives the office Samsung screens (32" Smart Monitor M8s and 98" Crystal UHD TVs)
-over DLNA. It shows websites, images and videos on any set of screens, keeps them playing through
-sleep and dropped streams, and switches monitors back to their PC input.
+over DLNA. It shows websites, images and videos on any set of screens, lets go as soon as
+someone switches a screen to another input, and switches monitors back to their PC input.
 
 Websites are rendered by headless Chrome and streamed to the screens through ffmpeg as one shared
 MPEG-TS stream, so every screen showing the same page stays in sync.
