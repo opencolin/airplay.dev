@@ -1,6 +1,6 @@
-# Samsung Wall
+# airplay.dev
 
-A small hub that drives the office Samsung screens (32" Smart Monitor M8s and 98" Crystal UHD TVs)
+A small hub that drives Smart TVs and monitors (today: Samsung Smart TVs and Smart Monitors)
 over DLNA. It shows websites, images and videos on any set of screens, lets go as soon as
 someone switches a screen to another input, and switches monitors back to their PC input.
 

@@ -412,7 +412,7 @@ function authorize(req, res) {
     sendJson(res, 403, { error: 'Set DASHBOARD_PASSWORD to open the dashboard from other devices.' });
     return false;
   }
-  res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Samsung Wall"', 'Content-Type': 'application/json' });
+  res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="airplay.dev"', 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Password required.' }));
   return false;
 }

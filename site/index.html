@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Samsung Wall — control your Samsung TVs from Claude</title>
+<title>airplay.dev — control your Smart TVs from Claude</title>
 <style>
   :root { color-scheme: light dark; --bg: #f5f5f4; --card: #fff; --text: #1c1917; --muted: #78716c; --line: #e7e5e4; --accent: #2563eb; --on-accent: #fff; --code: #f0efed; }
   @media (prefers-color-scheme: dark) { :root { --bg: #171717; --card: #262626; --text: #f5f5f4; --muted: #a8a29e; --line: #404040; --accent: #60a5fa; --on-accent: #111; --code: #1f1f1f; } }
@@ -28,8 +28,8 @@
 </head>
 <body>
 <p class="notice">An independent open-source project. Not an Apple product, and not made or endorsed by Apple or Samsung.</p>
-<h1>Put anything on your Samsung TVs, from Claude.</h1>
-<p class="lede">Paste one prompt. Claude sets up a small hub on your Mac, finds the Samsung TVs and monitors on your network, and from then on you just ask: “put our dashboard on both 98-inch screens.”</p>
+<h1>Put anything on your Smart TVs, from Claude.</h1>
+<p class="lede">Paste one prompt. Claude sets up a small hub on your Mac, finds the Smart TVs and monitors on your network, and from then on you just ask: “put our dashboard on both 98-inch screens.”</p>
 
 <div class="card">
   <p class="step"><span class="num">1</span><span>Copy this prompt and paste it into Claude Code (terminal, desktop app or IDE) on a Mac that’s on the same network as the screens.</span></p>
@@ -54,7 +54,7 @@
 <h2>Good to know</h2>
 <ul>
   <li>The hub runs on your Mac and needs Node, ffmpeg and Google Chrome. Claude checks for them and asks before installing anything.</li>
-  <li>It works with Samsung smart TVs and Smart Monitors that accept DLNA casting, on the same network as your Mac.</li>
+  <li>Today it works with Samsung Smart TVs and Smart Monitors, on the same network as your Mac. Other brands aren’t supported yet.</li>
   <li>The hub starts at login. It sends content once and never takes a screen back: switch the TV to another input and it stays yours.</li>
   <li>Prefer clicking? Once it’s running, the dashboard is at <code>http://localhost:8787</code>.</li>
   <li>The code is open: <a href="https://github.com/opencolin/airplay.dev">github.com/opencolin/airplay.dev</a>.</li>
@@ -65,9 +65,9 @@
 </footer>
 
 <script>
-  const prompt = `Set up Samsung Wall so you can control the Samsung TVs and monitors on my network.
+  const prompt = `Set up airplay.dev so you can control the Smart TVs and monitors on my network.
 
-1. Download https://airplay.dev/skill.md and save it as ~/.claude/skills/samsung-wall/SKILL.md (create the folder).
+1. Download https://airplay.dev/skill.md and save it as ~/.claude/skills/airplay-dev/SKILL.md (create the folder).
 2. Read it and follow its setup: install the hub on this machine and scan for screens.
 3. Show me which screens you found and what each one is showing right now.`;
   document.getElementById('prompt').textContent = prompt;

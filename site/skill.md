@@ -1,13 +1,16 @@
 ---
-name: samsung-wall
-description: Control the office Samsung TVs and monitors (the Samsung Wall) — show a website, image or video on one screen or many, clear them, switch monitors back to their PC input, or check what each screen is showing. Use whenever the user asks to put something on the TVs, the 98-inch screens, the monitors, the wall, the conference room screen, or asks what is on them.
+name: airplay-dev
+description: Control the Smart TVs and monitors on the local network with airplay.dev — show a website, image or video on one screen or many, clear them, switch monitors back to their PC input, or check what each screen is showing. Use whenever the user asks to put something on the TVs, the 98-inch screens, the monitors, the wall, the conference room screen, or asks what is on them.
 ---
 
-# Samsung Wall
+# airplay.dev
 
-The Samsung Wall hub is a small server that runs on the user's own machine. It finds the Samsung
+The airplay.dev hub is a small server that runs on the user's own machine. It finds the Smart
 TVs and monitors on the local network and drives them over DLNA. You control it with `curl` at
 `http://localhost:8787`. No password is needed from the machine the hub runs on.
+
+Today the hub only finds and drives Samsung Smart TVs and Smart Monitors. If the user's screens
+are another brand, say so up front rather than installing.
 
 ## Setup
 
@@ -32,11 +35,11 @@ machine must be on the same network as the screens.
 2. Get the code and install the hub so it starts at login and stays running:
 
    ```bash
-   git clone https://github.com/opencolin/airplay.dev ~/samsung-wall
-   cd ~/samsung-wall && npm install && scripts/install-service.sh
+   git clone https://github.com/opencolin/airplay.dev ~/airplay.dev
+   cd ~/airplay.dev && npm install && scripts/install-service.sh
    ```
 
-   If `~/samsung-wall` already exists, `git -C ~/samsung-wall pull` instead of cloning.
+   If `~/airplay.dev` already exists, `git -C ~/airplay.dev pull` instead of cloning.
 
 3. Wait a few seconds, then find the screens. The scan takes up to a minute:
 
@@ -46,7 +49,7 @@ machine must be on the same network as the screens.
 
    macOS may ask the user to allow `node` to find devices on the local network; they must allow
    it. If no screens come back, check the screens are on and on the same network, and read
-   `~/samsung-wall/data/hub.log`.
+   `~/airplay.dev/data/hub.log`.
 
 4. Tell the user which screens were found, by label.
 
