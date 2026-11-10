@@ -21,10 +21,13 @@
   button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
   ul { padding-left: 20px; } li { margin: 6px 0; }
   .muted { color: var(--muted); font-size: 14px; }
+  .notice { display: inline-block; margin: 0 0 20px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 14px; }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); }
   code { font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
+<p class="notice">An independent open-source project. Not an Apple product, and not made or endorsed by Apple or Samsung.</p>
 <h1>Put anything on your Samsung TVs, from Claude.</h1>
 <p class="lede">Paste one prompt. Claude sets up a small hub on your Mac, finds the Samsung TVs and monitors on your network, and from then on you just ask: “put our dashboard on both 98-inch screens.”</p>
 
@@ -56,6 +59,10 @@
   <li>Prefer clicking? Once it’s running, the dashboard is at <code>http://localhost:8787</code>.</li>
   <li>The code is open: <a href="https://github.com/opencolin/samsung-wall">github.com/opencolin/samsung-wall</a>.</li>
 </ul>
+
+<footer class="muted">
+  <p>This site and software are not affiliated with, endorsed by, or sponsored by Apple Inc. or Samsung Electronics. AirPlay and Apple are trademarks of Apple Inc. Samsung is a trademark of Samsung Electronics Co., Ltd. This project does not use Apple’s AirPlay technology; it sends content to screens over DLNA.</p>
+</footer>
 
 <script>
   const prompt = `Set up Samsung Wall so you can control the Samsung TVs and monitors on my network.

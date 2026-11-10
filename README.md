@@ -46,3 +46,10 @@ uploads and the Chrome profile live in `data/`, which is not committed.
   sometimes over 15, and fall asleep again about a minute after nothing is playing.
 - Monitors switch to their PC (USB-C) input with remote key `KEY_PCMODE` over
   `wss://<ip>:8002` (`samsung.remote.control`). MDC on port 1515 did not work.
+
+## Not an Apple or Samsung product
+
+This is an independent open-source project. It is not affiliated with, endorsed by, or sponsored
+by Apple Inc. or Samsung Electronics. AirPlay and Apple are trademarks of Apple Inc.; Samsung is a
+trademark of Samsung Electronics Co., Ltd. The project does not use Apple's AirPlay technology; it
+sends content to screens over DLNA.
