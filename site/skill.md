@@ -32,7 +32,7 @@ machine must be on the same network as the screens.
 2. Get the code and install the hub so it starts at login and stays running:
 
    ```bash
-   git clone https://github.com/opencolin/samsung-wall ~/samsung-wall
+   git clone https://github.com/opencolin/airplay.dev ~/samsung-wall
    cd ~/samsung-wall && npm install && scripts/install-service.sh
    ```
 
