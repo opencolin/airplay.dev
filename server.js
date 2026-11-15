@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { ensureLive, getLive, hasClient, liveKey, stopUnused } from './lib/live.js';
+import { matchInputs, readInputs, smartThings } from './lib/smartthings.js';
 import { discover, findIpByMac, getInfo, lanAddressFor, loadMedia, playbackState, playMedia, pressPcKey, receiverReady, stopMedia, wake } from './lib/samsung.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -22,6 +23,7 @@ const RESCAN_MS = 5 * 60000;
 const WAKE_ATTEMPTS = 5;
 const IDENTIFY_MS = 8000;
 const RELEASE_GRACE_MS = 2 * 60000;
+const INPUTS_MS = 30000;
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const VIDEO_TARGET_SECONDS = 8 * 3600;
 const VIDEO_MAX_BYTES = 1e9;
@@ -56,6 +58,8 @@ const { monitors } = state;
 const runtime = new Map(); // monitor id -> { busy, status, error, failures, nextTry, castAt }
 let scanning = null;
 let lastScan = 0;
+const smartthings = smartThings(DATA);
+const inputs = { byScreen: {}, unmatched: [], error: null, updatedAt: 0 };
 let rollout = 0; // A new send cancels any one-by-one send still in progress.
 
 function save() {
@@ -72,13 +76,32 @@ function publicMonitor(m) {
   const asset = state.library.find((a) => a.src === m.content?.src);
   return {
     id: m.id, ip: m.ip, name: m.name, label: m.label, model: m.model, status, error,
+    input: inputs.byScreen[m.id]?.input ?? null,
     content: m.content ? { type: m.content.type, name: asset?.name ?? m.content.src } : null,
   };
 }
 
 const publicState = () => ({
   scanning: !!scanning, monitors: Object.values(monitors).map(publicMonitor), groups: state.groups, library: state.library,
+  smartthings: {
+    connected: smartthings.method(), error: inputs.error, updatedAt: inputs.updatedAt || null,
+    unmatched: inputs.unmatched.map(({ label, model, input }) => ({ label, model, input })),
+  },
 });
+
+// Screens don't report their input over the LAN, so ask SmartThings when a token is set up.
+let inputsTimer;
+async function refreshInputs() {
+  clearTimeout(inputsTimer);
+  try {
+    const token = await smartthings.token();
+    if (token) Object.assign(inputs, matchInputs(Object.values(monitors), await readInputs(token)), { error: null, updatedAt: Date.now() });
+    else Object.assign(inputs, { byScreen: {}, unmatched: [], error: null, updatedAt: 0 });
+  } catch (err) {
+    inputs.error = err.message;
+  }
+  inputsTimer = setTimeout(refreshInputs, INPUTS_MS);
+}
 
 function scan({ wakeSleepers = false } = {}) {
   lastScan = Date.now();
@@ -437,6 +460,33 @@ async function handleControl(req, res, url) {
   const route = `${req.method} ${url.pathname}`;
   if (route === 'GET /') return sendFile(res, path.join(ROOT, 'public/index.html'), 'text/html');
   if (route === 'GET /api/state') return sendJson(res, 200, publicState());
+  // Sign in with SmartThings so the hub can read each screen's input. Do this on the hub's own
+  // machine: SmartThings hands the browser back to localhost.
+  if (route === 'GET /api/smartthings/connect') {
+    const location = await smartthings.signInUrl(PORT).catch((err) => `/?smartthings=${encodeURIComponent(err.message)}`);
+    res.writeHead(302, { Location: location });
+    return res.end();
+  }
+  if (route === 'GET /api/smartthings/callback') {
+    try {
+      await smartthings.finishSignIn(Object.fromEntries(url.searchParams));
+      await refreshInputs();
+      res.writeHead(302, { Location: '/?smartthings=connected' });
+    } catch (err) {
+      res.writeHead(302, { Location: `/?smartthings=${encodeURIComponent(err.message)}` });
+    }
+    return res.end();
+  }
+  if (route === 'POST /api/smartthings/token') {
+    smartthings.savePersonalToken((await readJson(req)).token);
+    await refreshInputs();
+    return sendJson(res, 200, publicState());
+  }
+  if (route === 'POST /api/smartthings/disconnect') {
+    smartthings.disconnect();
+    await refreshInputs();
+    return sendJson(res, 200, publicState());
+  }
   if (route === 'POST /api/scan') {
     await scanning?.catch(() => null);
     await scan({ wakeSleepers: true });
@@ -546,4 +596,5 @@ server.listen(PORT, () => {
   console.log(`Dashboard: http://localhost:${PORT}`);
   scan().catch((err) => console.error('Scan failed:', err.message));
   checkScreens();
+  refreshInputs();
 });

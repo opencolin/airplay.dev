@@ -11,6 +11,8 @@
   body { margin: 0 auto; max-width: 1040px; padding: 24px 16px; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
   header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
   h1 { font-size: 22px; margin: 0; } h2 { font-size: 15px; margin: 0 0 10px; }
+  a.button { padding: 7px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--text); text-decoration: none; }
+  [hidden] { display: none !important; }
   button { font: inherit; padding: 7px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--text); cursor: pointer; }
   button.primary, button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   button:disabled { opacity: .5; cursor: default; }
@@ -65,6 +67,14 @@
     <button class="primary" id="send">Send to selected screens</button>
   </div>
   <div id="log" role="status"></div>
+</section>
+<section class="panel">
+  <h2>SmartThings</h2>
+  <div class="row">
+    <span class="grow" id="stStatus"></span>
+    <a class="button" id="stConnect" href="/api/smartthings/connect">Sign in with SmartThings</a>
+    <button id="stDisconnect">Disconnect</button>
+  </div>
 </section>
 <script type="module">
   const $ = (id) => document.getElementById(id);
@@ -127,6 +137,7 @@
     state.className = tone;
     state.textContent = text;
     meta.append(state, ` · ${m.ip}`);
+    if (m.input) meta.append(` · Input: ${m.input}`);
     if (m.content) meta.append(` · ${m.content.name}`);
     if (m.error) meta.append(` · ${m.error}`);
     el.append(top, meta);
@@ -192,6 +203,14 @@
       $('screens').replaceChildren(...view.monitors.map(card));
       if (!view.monitors.length) $('screens').textContent = view.scanning ? 'Looking for screens…' : 'No screens found.';
     }
+    const st = view.smartthings;
+    const matched = view.monitors.filter((m) => m.input).length;
+    $('stStatus').textContent = !st.connected ? 'Sign in to see which input each screen is on.'
+      : st.error ? st.error
+      : `Connected. Inputs for ${matched} of ${view.monitors.length} screens${st.unmatched.length ? `; not matched by name: ${st.unmatched.map((d) => d.label).join(', ')}` : ''}.`;
+    $('stConnect').hidden = !!st.connected && !st.error;
+    $('stConnect').textContent = st.connected ? 'Sign in again' : 'Sign in with SmartThings';
+    $('stDisconnect').hidden = !st.connected;
     if (changed('library', view.library)) {
       $('library').replaceChildren(...view.library.map(assetRow));
       if (!view.library.length) $('library').textContent = 'Add a website, image, or video.';
@@ -238,6 +257,13 @@
     if (!confirm(`In use, so left alone: ${names}.\n\nTake them over anyway?`)) return data;
     return api('/api/show', { ...request, ids: data.skipped.map((m) => m.id), force: true });
   });
+
+  $('stDisconnect').onclick = () => run('Disconnecting', () => api('/api/smartthings/disconnect', {}));
+  const signedIn = new URLSearchParams(location.search).get('smartthings');
+  if (signedIn) {
+    $('log').textContent = signedIn === 'connected' ? 'SmartThings connected.' : signedIn;
+    history.replaceState(null, '', '/');
+  }
 
   refresh();
   setInterval(refresh, 3000);

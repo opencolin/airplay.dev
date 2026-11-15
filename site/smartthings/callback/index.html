@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Connecting SmartThings</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f5f5f4; --text: #1c1917; --muted: #78716c; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #171717; --text: #f5f5f4; --muted: #a8a29e; } }
+  body { margin: 0 auto; max-width: 560px; padding: 64px 16px; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, sans-serif; }
+  p { color: var(--muted); }
+</style>
+</head>
+<body>
+<h1>Connecting SmartThings</h1>
+<p id="message">Handing you back to your airplay.dev hub…</p>
+<script>
+  // SmartThings only redirects to this page; the code goes on to the hub on this computer,
+  // which swaps it for tokens. The state names the hub's port, so only localhost is reachable.
+  const params = new URLSearchParams(location.search);
+  const state = params.get('state') ?? '';
+  const port = Number(/^[A-Za-z0-9_-]{16,}\.(\d{1,5})$/.exec(state)?.[1]);
+  const message = document.getElementById('message');
+  if (!port || port > 65535) {
+    message.textContent = 'This link did not come from an airplay.dev hub. Start again from the hub dashboard.';
+  } else {
+    const back = new URL(`http://localhost:${port}/api/smartthings/callback`);
+    for (const key of ['code', 'state', 'error', 'error_description']) {
+      if (params.has(key)) back.searchParams.set(key, params.get(key));
+    }
+    history.replaceState(null, '', location.pathname);
+    location.replace(back);
+  }
+</script>
+</body>
+</html>

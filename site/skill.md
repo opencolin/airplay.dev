@@ -55,6 +55,26 @@ machine must be on the same network as the screens.
 
 To restart the hub: `launchctl kickstart -k gui/$(id -u)/club.samsungwall.hub`.
 
+### Optional: SmartThings, to see each screen's input
+
+The screens don't say which input they're on (HDMI, USB-C, a TV app) over the local network.
+SmartThings does. Offer this when the user asks what's on a screen, or which input it's on.
+
+1. Each screen must be in the user's SmartThings account. On the screen, sign in to a Samsung
+   account, or add it in the SmartThings phone app (+ → Add device → TV or Monitor). Give every
+   screen its own name there: the hub matches SmartThings screens by name, and a name set in
+   SmartThings becomes the screen's name on the network.
+2. Have the user open `http://localhost:8787/api/smartthings/connect` **on the hub's machine**
+   (`open` it for them) and sign in with that Samsung account. They come back to the dashboard,
+   which says "SmartThings connected". The hub keeps the sign-in fresh by itself.
+3. Check `smartthings` in `/api/state`: `connected` is `oauth`, `error` is `null`, and
+   `unmatched` lists SmartThings screens whose name matches no hub screen (or more than one).
+
+If sign-in isn't available, a personal access token works for 24 hours: the user makes one at
+account.smartthings.com/tokens with "See all devices", then
+`curl -s -X POST localhost:8787/api/smartthings/token -H 'content-type: application/json' -d '{"token":"…"}'`.
+`POST /api/smartthings/disconnect` removes either.
+
 ## See the screens and the library
 
 ```bash
@@ -66,6 +86,8 @@ Returns JSON with:
 - `monitors[]`: `id`, `label` (the name people use, e.g. `98" Crystal UHD`, `Conference Room`),
   `ip`, `model`, `status`, `error`,
   and `content` (what it should be showing).
+  `input` is the screen's current source (e.g. `HDMI1`, `USB-C`) when SmartThings is connected
+  and the screen is matched, else `null`; `smartthings.error` says why inputs are missing.
   Statuses: `playing` (showing hub content), `inuse` (on, and showing something that isn't from
   the hub: someone's PC, a console, a TV app), `asleep` (off or sleeping, free to use), `idle`
   (the hub just let go of it), `sending`, `error`, `checking`.
